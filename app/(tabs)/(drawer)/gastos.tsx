@@ -4,13 +4,11 @@ import {
   Text,
   TextInput,
   FlatList,
-  StyleSheet,
   Pressable,
   Platform,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
+import { styles } from "./styles";
 
-// Tipo para cada fila de gasto
 type Gasto = {
   id: string;
   elemento: string;
@@ -20,8 +18,19 @@ type Gasto = {
   gasto: string;
 };
 
+const MESES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
+
+const ESTADOS = ["Pendiente", "Pagado", "No aplica"];
+
 export default function GastosScreen() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [editandoCampo, setEditandoCampo] = useState<{
+    id: string;
+    campo: "mes" | "estado" | null;
+  } | null>(null);
 
   const agregarElemento = () => {
     setGastos([
@@ -48,13 +57,11 @@ export default function GastosScreen() {
     setGastos(nuevos);
   };
 
-  const getTotal = () => {
-    return gastos.reduce((acc, curr) => acc + parseFloat(curr.gasto || "0"), 0);
-  };
+  const getTotal = () =>
+    gastos.reduce((acc, curr) => acc + parseFloat(curr.gasto || "0"), 0);
 
   const renderFecha = (item: Gasto) => {
     const isWeb = Platform.OS === "web";
-
     const fechaTexto = item.fecha ? item.fecha.toLocaleDateString() : "";
 
     const handleFechaChange = (e: any) => {
@@ -99,6 +106,57 @@ export default function GastosScreen() {
     );
   };
 
+  const renderSelect = (
+    item: Gasto,
+    campo: "mes" | "estado",
+    opciones: string[],
+    color: string
+  ) => {
+    const isEditing =
+      editandoCampo?.id === item.id && editandoCampo.campo === campo;
+
+    if (isEditing || !item[campo]) {
+      return (
+        <View style={styles.pickerCell}>
+          <select
+            value={item[campo]}
+            onChange={(e) => {
+              handleChange(item.id, campo, e.target.value);
+              setEditandoCampo(null);
+            }}
+            onBlur={() => setEditandoCampo(null)}
+            style={{
+              backgroundColor: "#f1f5f9",
+              borderRadius: 6,
+              padding: 6,
+              width: "100%",
+              border: "none",
+              textAlign: "center",
+              fontWeight: "bold",
+              color: "#1f2937",
+            }}
+          >
+            <option value="">Selecciona</option>
+            {opciones.map((op) => (
+              <option key={op} value={op}>
+                {op}
+              </option>
+            ))}
+          </select>
+        </View>
+      );
+    }
+
+    return (
+      <Pressable
+        style={[styles.tag, { backgroundColor: color }]}
+        onPress={() => setEditandoCampo({ id: item.id, campo })}
+      >
+        <Text style={styles.tagText}>{item[campo]}</Text>
+      </Pressable>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -129,27 +187,20 @@ export default function GastosScreen() {
               placeholder="Concepto"
               value={item.elemento}
               onChangeText={(text) => handleChange(item.id, "elemento", text)}
+              placeholderTextColor="#64748b"
             />
-            <Picker
-              selectedValue={item.mes}
-              style={styles.pickerCell}
-              onValueChange={(value) => handleChange(item.id, "mes", value)}
-            >
-              <Picker.Item label="Mes" value="" />
-              {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((mes) => (
-                <Picker.Item key={mes} label={mes} value={mes} />
-              ))}
-            </Picker>
 
-            <Picker
-              selectedValue={item.estado}
-              style={styles.pickerCell}
-              onValueChange={(value) => handleChange(item.id, "estado", value)}
-            >
-              <Picker.Item label="Estado" value="" />
-              <Picker.Item label="Pendiente" value="pendiente" />
-              <Picker.Item label="Pagado" value="pagado" />
-            </Picker>
+            {renderSelect(item, "mes", MESES, "#fbbf24")}
+            {renderSelect(
+              item,
+              "estado",
+              ESTADOS,
+              item.estado === "Pagado"
+                ? "#10b981"
+                : item.estado === "No aplica"
+                ? "#6b7280"
+                : "#f97316"
+            )}
 
             {renderFecha(item)}
 
@@ -164,61 +215,20 @@ export default function GastosScreen() {
               ]}
             >
               <TextInput
-                style={{ flex: 1, textAlign: "right" }}
+                style={{ flex: 1, textAlign: "right", color: "#1f2937" }}
                 placeholder="0"
                 keyboardType="numeric"
                 value={item.gasto}
                 onChangeText={(text) => handleChange(item.id, "gasto", text)}
+                placeholderTextColor="#64748b"
               />
-              <Text style={{ marginLeft: 4 }}>$</Text>
+              <Text style={{ marginLeft: 4, fontWeight: "bold" }}>$</Text>
             </View>
           </View>
         )}
       />
 
-      <Text
-        style={{
-          textAlign: "right",
-          fontSize: 16,
-          fontWeight: "bold",
-          marginTop: 12,
-        }}
-      >
-        Total acumulado: ${getTotal()}
-      </Text>
+      <Text style={styles.total}>Total acumulado: ${getTotal()}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { padding: 12, flex: 1 },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  title: { fontSize: 22, fontWeight: "bold" },
-  boton: {
-    backgroundColor: "#007bff",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-  },
-  row: { flexDirection: "row", marginBottom: 8, alignItems: "center" },
-  header: { borderBottomWidth: 1, borderColor: "#ccc", paddingBottom: 4 },
-  cell: { flex: 1, fontWeight: "bold", textAlign: "center" },
-  inputCell: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 6,
-    borderRadius: 4,
-    marginHorizontal: 2,
-    textAlign: "center",
-  },
-  pickerCell: {
-    flex: 1,
-    marginHorizontal: 2,
-  },
-});
