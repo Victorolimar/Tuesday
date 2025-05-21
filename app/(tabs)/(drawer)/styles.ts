@@ -7,8 +7,8 @@ export const styles = StyleSheet.create({
     backgroundColor: "#1F2533",
   },
   headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "column",
+    alignItems: "flex-start",
     marginBottom: 16,
   },
   title: {

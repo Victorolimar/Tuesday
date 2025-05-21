@@ -19,8 +19,18 @@ type Gasto = {
 };
 
 const MESES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 const ESTADOS = ["Pendiente", "Pagado", "No aplica"];
@@ -161,11 +171,13 @@ export default function GastosScreen() {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Tablero de Gastos</Text>
-        <Pressable style={styles.boton} onPress={agregarElemento}>
-          <Text style={{ color: "white", fontWeight: "bold" }}>
-            ➕ Nuevo elemento
-          </Text>
-        </Pressable>
+        <View style={{ marginTop: 8 }}>
+          <Pressable style={styles.boton} onPress={agregarElemento}>
+            <Text style={{ color: "white", fontWeight: "bold" }}>
+              ➕ Nuevo elemento
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <FlatList
