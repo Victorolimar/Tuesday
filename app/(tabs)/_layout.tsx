@@ -10,13 +10,13 @@ export default function Layout() {
       <View style={styles.sidebar}>
         <Text style={styles.title}>📋 Menú</Text>
         <Pressable style={styles.link} onPress={() => router.push("/gastos")}>
-          <Text>Gastos</Text>
+          <Text style={styles.linkText}>Gastos</Text>
         </Pressable>
         <Pressable style={styles.link} onPress={() => router.push("/two")}>
-          <Text>Ingresos</Text>
+          <Text style={styles.linkText}>Ingresos</Text>
         </Pressable>
         <Pressable style={styles.link} onPress={() => router.push("/")}>
-          <Text>Deudas</Text>
+          <Text style={styles.linkText}>Deudas</Text>
         </Pressable>
       </View>
 
@@ -32,19 +32,30 @@ const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: "row" },
   sidebar: {
     width: 220,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#1F2533", // mismo color que el fondo de gastos
     padding: 20,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
+    color: "#f1f5f9",
     marginBottom: 20,
   },
   link: {
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginBottom: 10,
+    backgroundColor: "#2C3343", // ligeramente más claro
+  },
+  linkText: {
+    color: "#f1f5f9",
+    fontSize: 16,
+    fontWeight: "500",
   },
   content: {
     flex: 1,
     padding: 20,
+    backgroundColor: "#1F2533", // para mantener consistencia visual
   },
 });
