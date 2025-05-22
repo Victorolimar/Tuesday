@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,8 +6,36 @@ import {
   FlatList,
   Pressable,
   Platform,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { styles } from "./styles";
+
+// Colores personalizados por mes
+const MESES_COLORES: Record<string, string> = {
+  Enero: "#facc15",
+  Febrero: "#f87171",
+  Marzo: "#34d399",
+  Abril: "#60a5fa",
+  Mayo: "#f472b6",
+  Junio: "#a78bfa",
+  Julio: "#38bdf8",
+  Agosto: "#fb923c",
+  Septiembre: "#4ade80",
+  Octubre: "#fcd34d",
+  Noviembre: "#c084fc",
+  Diciembre: "#a3e635",
+  "No aplica": "#6b7280",
+};
+
+const ESTADOS_COLORES: Record<string, string> = {
+  Pendiente: "#f97316",
+  Pagado: "#10b981",
+  "No aplica": "#6b7280",
+};
+
+const MESES = Object.keys(MESES_COLORES);
+const ESTADOS = Object.keys(ESTADOS_COLORES);
 
 type Gasto = {
   id: string;
@@ -18,29 +46,17 @@ type Gasto = {
   gasto: string;
 };
 
-const MESES = [
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Septiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
-];
-
-const ESTADOS = ["Pendiente", "Pagado", "No aplica"];
-
 export default function GastosScreen() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
-  const [editandoCampo, setEditandoCampo] = useState<{
+  const [menuVisible, setMenuVisible] = useState<{
     id: string;
-    campo: "mes" | "estado" | null;
+    campo: "mes" | "estado";
+    top: number;
+    left: number;
+    width: number;
   } | null>(null);
+
+  const refs = useRef<Record<string, any>>({});
 
   const agregarElemento = () => {
     setGastos([
@@ -48,8 +64,8 @@ export default function GastosScreen() {
       {
         id: Date.now().toString(),
         elemento: "",
-        mes: "",
-        estado: "",
+        mes: "No aplica",
+        estado: "No aplica",
         fecha: null,
         gasto: "",
       },
@@ -69,6 +85,32 @@ export default function GastosScreen() {
 
   const getTotal = () =>
     gastos.reduce((acc, curr) => acc + parseFloat(curr.gasto || "0"), 0);
+
+  const openDropdown = (id: string, campo: "mes" | "estado") => {
+    if (Platform.OS === "web") {
+      const key = `${id}-${campo}`;
+      const ref = refs.current[key];
+      if (ref) {
+        const rect = ref.getBoundingClientRect();
+        const dropdownHeight = 240;
+        const bottomSpace = window.innerHeight - rect.bottom;
+        const top =
+          bottomSpace > dropdownHeight
+            ? rect.bottom + window.scrollY
+            : rect.top + window.scrollY - dropdownHeight;
+
+        setMenuVisible({
+          id,
+          campo,
+          top,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        });
+      }
+    } else {
+      setMenuVisible({ id, campo, top: 0, left: 0, width: 0 });
+    }
+  };
 
   const renderFecha = (item: Gasto) => {
     const isWeb = Platform.OS === "web";
@@ -116,54 +158,33 @@ export default function GastosScreen() {
     );
   };
 
-  const renderSelect = (
+  const renderDropdown = (
     item: Gasto,
     campo: "mes" | "estado",
-    opciones: string[],
-    color: string
+    opciones: string[]
   ) => {
-    const isEditing =
-      editandoCampo?.id === item.id && editandoCampo.campo === campo;
-
-    if (isEditing || !item[campo]) {
-      return (
-        <View style={styles.pickerCell}>
-          <select
-            value={item[campo]}
-            onChange={(e) => {
-              handleChange(item.id, campo, e.target.value);
-              setEditandoCampo(null);
-            }}
-            onBlur={() => setEditandoCampo(null)}
-            style={{
-              backgroundColor: "#f1f5f9",
-              borderRadius: 6,
-              padding: 6,
-              width: "100%",
-              border: "none",
-              textAlign: "center",
-              fontWeight: "bold",
-              color: "#1f2937",
-            }}
-          >
-            <option value="">Selecciona</option>
-            {opciones.map((op) => (
-              <option key={op} value={op}>
-                {op}
-              </option>
-            ))}
-          </select>
-        </View>
-      );
-    }
+    const key = `${item.id}-${campo}`;
+    const color =
+      campo === "mes"
+        ? MESES_COLORES[item.mes] || "#f1f5f9"
+        : ESTADOS_COLORES[item.estado] || "#f1f5f9";
 
     return (
-      <Pressable
-        style={[styles.tag, { backgroundColor: color }]}
-        onPress={() => setEditandoCampo({ id: item.id, campo })}
+      <View
+        style={{ position: "relative", flex: 1, marginHorizontal: 2 }}
+        ref={(el) => {
+          if (Platform.OS === "web") {
+            refs.current[key] = el as unknown as HTMLDivElement;
+          }
+        }}
       >
-        <Text style={styles.tagText}>{item[campo]}</Text>
-      </Pressable>
+        <Pressable
+          style={[styles.tag, { backgroundColor: color }]}
+          onPress={() => openDropdown(item.id, campo)}
+        >
+          <Text style={styles.tagText}>{item[campo]}</Text>
+        </Pressable>
+      </View>
     );
   };
 
@@ -202,17 +223,8 @@ export default function GastosScreen() {
               placeholderTextColor="#64748b"
             />
 
-            {renderSelect(item, "mes", MESES, "#fbbf24")}
-            {renderSelect(
-              item,
-              "estado",
-              ESTADOS,
-              item.estado === "Pagado"
-                ? "#10b981"
-                : item.estado === "No aplica"
-                ? "#6b7280"
-                : "#f97316"
-            )}
+            {renderDropdown(item, "mes", MESES)}
+            {renderDropdown(item, "estado", ESTADOS)}
 
             {renderFecha(item)}
 
@@ -239,6 +251,73 @@ export default function GastosScreen() {
           </View>
         )}
       />
+
+      {menuVisible && (
+        <Modal transparent visible animationType="fade">
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => setMenuVisible(null)}
+          >
+            <View
+              style={{
+                position: "absolute",
+                top: menuVisible.top,
+                left: menuVisible.left,
+                width: menuVisible.width * 2,
+                backgroundColor: "white",
+                padding: 10,
+                borderRadius: 8,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+                elevation: 5,
+                zIndex: 1000,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  justifyContent: "space-between",
+                }}
+              >
+                {(menuVisible.campo === "mes" ? MESES : ESTADOS).map((op) => (
+                  <Pressable
+                    key={op}
+                    onPress={() => {
+                      handleChange(menuVisible.id, menuVisible.campo, op);
+                      setMenuVisible(null);
+                    }}
+                    style={{
+                      width: "48%",
+                      paddingVertical: 10,
+                      paddingHorizontal: 6,
+                      marginBottom: 8,
+                      borderRadius: 4,
+                      backgroundColor:
+                        menuVisible.campo === "mes"
+                          ? MESES_COLORES[op]
+                          : ESTADOS_COLORES[op],
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "500",
+                        textAlign: "center",
+                        color: "#1f2937",
+                      }}
+                    >
+                      {op}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
       <Text style={styles.total}>Total acumulado: ${getTotal()}</Text>
     </View>
